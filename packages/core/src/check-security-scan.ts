@@ -11,7 +11,8 @@ import {
 import { collectSecurityScanFiles } from "./checks/security-scan/collect-security-scan-files.js";
 import { COOPERATIVE_YIELD_BUDGET_MS } from "./constants.js";
 import { getCapabilities, shouldEnableRule } from "./project-info/capabilities.js";
-import type { Diagnostic, ProjectInfo } from "./types/index.js";
+import { resolveRuleSeverityOverride } from "./resolve-rule-severity-override.js";
+import type { Diagnostic, ProjectInfo, RuleSeverityControls } from "./types/index.js";
 import { isPathGitIgnored } from "./utils/is-path-git-ignored.js";
 import { remainingDeadlineBudgetMs } from "./utils/remaining-deadline-budget-ms.js";
 import { shouldEnableRuleByDefaultStatus } from "./utils/should-enable-rule-by-default-status.js";
@@ -19,6 +20,7 @@ import { yieldToEventLoop } from "./utils/yield-to-event-loop.js";
 
 export interface CheckSecurityScanOptions {
   readonly project?: ProjectInfo;
+  readonly severityControls?: RuleSeverityControls;
   readonly ignoredTags?: ReadonlySet<string>;
   readonly includedTags?: ReadonlySet<string>;
   readonly includeTagDefaults?: boolean;
@@ -62,11 +64,17 @@ const createSecurityScanSession = (
     const rule = entry.rule;
     const scan = rule.scan;
     if (typeof scan !== "function") return [];
+    const explicitRuleOverride = resolveRuleSeverityOverride(
+      { ruleKey: entry.key },
+      options.severityControls,
+    );
+    if (explicitRuleOverride === "off") return [];
     if (
       !shouldEnableRuleByDefaultStatus({
         defaultEnabled: rule.defaultEnabled,
         includeTagDefaults: options.includeTagDefaults === true,
         hasIncludedTags: includedTags.size > 0,
+        hasExplicitOverride: explicitRuleOverride !== undefined,
       })
     )
       return [];

@@ -423,6 +423,7 @@ export const runInspect = <HooksR = never>(
                 Effect.tryPromise((signal) =>
                   checkSecurityScanCooperative(scanDirectory, {
                     project,
+                    severityControls: buildRuleSeverityControls(resolvedConfig.config),
                     ignoredTags: input.ignoredTags,
                     includedTags: input.includedTags,
                     includeTagDefaults: input.includeTagDefaults,

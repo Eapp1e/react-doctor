@@ -1695,6 +1695,23 @@ alter table data enable row level security;
     ).toEqual([]);
   });
 
+  it("runs an opt-in scan rule that the rules config pins to a severity", () => {
+    const diagnostics = checkSecurityScan(
+      path.join(FIXTURES_DIRECTORY, "ported-agent-mcp-tool-risks"),
+      { severityControls: { rules: { "react-doctor/agent-tool-capability-risk": "error" } } },
+    );
+
+    expect(rulesOf(diagnostics)).toEqual(new Set(["agent-tool-capability-risk"]));
+  });
+
+  it("keeps opt-in scan rules dormant behind a category-wide severity override", () => {
+    expect(
+      checkSecurityScan(path.join(FIXTURES_DIRECTORY, "ported-agent-mcp-tool-risks"), {
+        severityControls: { categories: { Security: "error" } },
+      }),
+    ).toEqual([]);
+  });
+
   it("single-sources diagnostic metadata from the registry rule", () => {
     const entry = REACT_DOCTOR_RULES.find(
       (candidate) => candidate.id === "build-pipeline-secret-boundary",
